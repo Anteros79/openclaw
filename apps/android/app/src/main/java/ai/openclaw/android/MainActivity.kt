@@ -42,6 +42,7 @@ class MainActivity : ComponentActivity() {
     viewModel.sms.attachPermissionRequester(permissionRequester)
     viewModel.screenRecorder.attachScreenCaptureRequester(screenCaptureRequester)
     viewModel.screenRecorder.attachPermissionRequester(permissionRequester)
+    viewModel.screenRecorder.attachActivity(this)
 
     lifecycleScope.launch {
       repeatOnLifecycle(Lifecycle.State.STARTED) {

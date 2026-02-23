@@ -16,27 +16,32 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebViewClient
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.webkit.WebSettingsCompat
 import androidx.webkit.WebViewFeature
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.SheetState
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ScreenShare
@@ -52,6 +57,7 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.movableContentOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -67,6 +73,8 @@ import androidx.compose.ui.window.PopupProperties
 import androidx.core.content.ContextCompat
 import ai.openclaw.android.CameraHudKind
 import ai.openclaw.android.MainViewModel
+
+private enum class DisplayMode { SinglePane, DualPane, TabletopSplit }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -88,6 +96,13 @@ fun RootScreen(viewModel: MainViewModel) {
   val talkIsSpeaking by viewModel.talkIsSpeaking.collectAsState()
   val seamColorArgb by viewModel.seamColorArgb.collectAsState()
   val seamColor = remember(seamColorArgb) { ComposeColor(seamColorArgb) }
+  val posture by rememberWindowPosture()
+  val widthClass = rememberAppWidthClass()
+  val displayMode = when {
+    posture is WindowPosture.Tabletop -> DisplayMode.TabletopSplit
+    posture is WindowPosture.Flat || widthClass == AppWidthClass.Expanded -> DisplayMode.DualPane
+    else -> DisplayMode.SinglePane
+  }
   val audioPermissionLauncher =
     rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
       if (granted) viewModel.setTalkEnabled(true)
@@ -194,8 +209,100 @@ fun RootScreen(viewModel: MainViewModel) {
     ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) ==
       PackageManager.PERMISSION_GRANTED
 
+  val canvasContent = remember {
+    movableContentOf { modifier: Modifier ->
+      CanvasView(viewModel = viewModel, modifier = modifier)
+    }
+  }
+
+  val hingeRatio = (posture as? WindowPosture.Tabletop)?.hingeRatio ?: 0.5f
+  when (displayMode) {
+    DisplayMode.SinglePane -> SinglePaneLayout(
+      viewModel = viewModel,
+      canvasContent = canvasContent,
+      sheet = sheet,
+      onSheetChange = { sheet = it },
+      sheetState = sheetState,
+      safeOverlayInsets = safeOverlayInsets,
+      gatewayState = gatewayState,
+      voiceEnabled = voiceEnabled,
+      activity = activity,
+      seamColor = seamColor,
+      talkEnabled = talkEnabled,
+      talkStatusText = talkStatusText,
+      talkIsListening = talkIsListening,
+      talkIsSpeaking = talkIsSpeaking,
+      cameraFlashToken = cameraFlashToken,
+      context = context,
+      audioPermissionLauncher = audioPermissionLauncher,
+    )
+    DisplayMode.DualPane -> DualPaneLayout(
+      viewModel = viewModel,
+      canvasContent = canvasContent,
+      sheet = sheet,
+      onSheetChange = { sheet = it },
+      safeOverlayInsets = safeOverlayInsets,
+      gatewayState = gatewayState,
+      voiceEnabled = voiceEnabled,
+      activity = activity,
+      seamColor = seamColor,
+      talkEnabled = talkEnabled,
+      talkStatusText = talkStatusText,
+      talkIsListening = talkIsListening,
+      talkIsSpeaking = talkIsSpeaking,
+      cameraFlashToken = cameraFlashToken,
+      context = context,
+      audioPermissionLauncher = audioPermissionLauncher,
+    )
+    DisplayMode.TabletopSplit -> TabletopLayout(
+      viewModel = viewModel,
+      canvasContent = canvasContent,
+      sheet = sheet,
+      onSheetChange = { sheet = it },
+      hingeRatio = hingeRatio,
+      gatewayState = gatewayState,
+      voiceEnabled = voiceEnabled,
+      activity = activity,
+      seamColor = seamColor,
+      talkEnabled = talkEnabled,
+      talkStatusText = talkStatusText,
+      talkIsListening = talkIsListening,
+      talkIsSpeaking = talkIsSpeaking,
+      cameraFlashToken = cameraFlashToken,
+      context = context,
+      audioPermissionLauncher = audioPermissionLauncher,
+    )
+  }
+}
+
+private enum class Sheet {
+  Chat,
+  Settings,
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SinglePaneLayout(
+  viewModel: MainViewModel,
+  canvasContent: @Composable (Modifier) -> Unit,
+  sheet: Sheet?,
+  onSheetChange: (Sheet?) -> Unit,
+  sheetState: SheetState,
+  safeOverlayInsets: WindowInsets,
+  gatewayState: GatewayState,
+  voiceEnabled: Boolean,
+  activity: StatusActivity?,
+  seamColor: ComposeColor,
+  talkEnabled: Boolean,
+  talkStatusText: String,
+  talkIsListening: Boolean,
+  talkIsSpeaking: Boolean,
+  cameraFlashToken: Long,
+  context: android.content.Context,
+  audioPermissionLauncher: ActivityResultLauncher<String>,
+) {
   Box(modifier = Modifier.fillMaxSize()) {
-    CanvasView(viewModel = viewModel, modifier = Modifier.fillMaxSize())
+    canvasContent(Modifier.fillMaxSize())
   }
 
   // Camera flash must be in a Popup to render above the WebView.
@@ -209,7 +316,7 @@ fun RootScreen(viewModel: MainViewModel) {
       gateway = gatewayState,
       voiceEnabled = voiceEnabled,
       activity = activity,
-      onClick = { sheet = Sheet.Settings },
+      onClick = { onSheetChange(Sheet.Settings) },
       modifier = Modifier.windowInsetsPadding(safeOverlayInsets).padding(start = 12.dp, top = 12.dp),
     )
   }
@@ -221,7 +328,7 @@ fun RootScreen(viewModel: MainViewModel) {
       horizontalAlignment = Alignment.End,
     ) {
       OverlayIconButton(
-        onClick = { sheet = Sheet.Chat },
+        onClick = { onSheetChange(Sheet.Chat) },
         icon = { Icon(Icons.Default.ChatBubble, contentDescription = "Chat") },
       )
 
@@ -258,7 +365,7 @@ fun RootScreen(viewModel: MainViewModel) {
       )
 
       OverlayIconButton(
-        onClick = { sheet = Sheet.Settings },
+        onClick = { onSheetChange(Sheet.Settings) },
         icon = { Icon(Icons.Default.Settings, contentDescription = "Settings") },
       )
     }
@@ -278,7 +385,7 @@ fun RootScreen(viewModel: MainViewModel) {
   val currentSheet = sheet
   if (currentSheet != null) {
     ModalBottomSheet(
-      onDismissRequest = { sheet = null },
+      onDismissRequest = { onSheetChange(null) },
       sheetState = sheetState,
     ) {
       when (currentSheet) {
@@ -289,9 +396,213 @@ fun RootScreen(viewModel: MainViewModel) {
   }
 }
 
-private enum class Sheet {
-  Chat,
-  Settings,
+@Composable
+private fun DualPaneLayout(
+  viewModel: MainViewModel,
+  canvasContent: @Composable (Modifier) -> Unit,
+  sheet: Sheet?,
+  onSheetChange: (Sheet?) -> Unit,
+  safeOverlayInsets: WindowInsets,
+  gatewayState: GatewayState,
+  voiceEnabled: Boolean,
+  activity: StatusActivity?,
+  seamColor: ComposeColor,
+  talkEnabled: Boolean,
+  talkStatusText: String,
+  talkIsListening: Boolean,
+  talkIsSpeaking: Boolean,
+  cameraFlashToken: Long,
+  context: android.content.Context,
+  audioPermissionLauncher: ActivityResultLauncher<String>,
+) {
+  Row(modifier = Modifier.fillMaxSize()) {
+    // Left pane: Canvas (55%)
+    Box(modifier = Modifier.weight(0.55f).fillMaxHeight()) {
+      canvasContent(Modifier.fillMaxSize())
+
+      // Status pill — positioned inside canvas pane Box (drawn after AndroidView, so no Popup needed)
+      StatusPill(
+        gateway = gatewayState,
+        voiceEnabled = voiceEnabled,
+        activity = activity,
+        onClick = { onSheetChange(Sheet.Settings) },
+        modifier = Modifier.align(Alignment.TopStart)
+          .windowInsetsPadding(safeOverlayInsets)
+          .padding(start = 12.dp, top = 12.dp),
+      )
+
+      // Overlay buttons — top-right of canvas pane
+      Column(
+        modifier = Modifier.align(Alignment.TopEnd)
+          .windowInsetsPadding(safeOverlayInsets)
+          .padding(end = 12.dp, top = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+        horizontalAlignment = Alignment.End,
+      ) {
+        // Talk mode button
+        val baseOverlay = overlayContainerColor()
+        val talkContainer = lerp(
+          baseOverlay,
+          seamColor.copy(alpha = baseOverlay.alpha),
+          if (talkEnabled) 0.35f else 0.22f,
+        )
+        val talkContent = if (talkEnabled) seamColor else overlayIconColor()
+        OverlayIconButton(
+          onClick = {
+            val next = !talkEnabled
+            if (next) {
+              val micOk = ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) ==
+                PackageManager.PERMISSION_GRANTED
+              if (!micOk) audioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+              viewModel.setTalkEnabled(true)
+            } else {
+              viewModel.setTalkEnabled(false)
+            }
+          },
+          containerColor = talkContainer,
+          contentColor = talkContent,
+          icon = { Icon(Icons.Default.RecordVoiceOver, contentDescription = "Talk Mode") },
+        )
+
+        OverlayIconButton(
+          onClick = { onSheetChange(Sheet.Settings) },
+          icon = { Icon(Icons.Default.Settings, contentDescription = "Settings") },
+        )
+      }
+
+      // Talk orb — constrained to canvas pane
+      if (talkEnabled) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+          TalkOrbOverlay(
+            seamColor = seamColor,
+            statusText = talkStatusText,
+            isListening = talkIsListening,
+            isSpeaking = talkIsSpeaking,
+            modifier = Modifier.sizeIn(maxWidth = 280.dp, maxHeight = 280.dp),
+          )
+        }
+      }
+    }
+
+    // Right pane: Chat or Settings (45%)
+    Box(modifier = Modifier.weight(0.45f).fillMaxHeight()) {
+      when (sheet) {
+        Sheet.Settings -> SettingsSheet(viewModel = viewModel)
+        else -> ChatSheet(viewModel = viewModel)
+      }
+    }
+  }
+
+  // Camera flash still fullscreen
+  Popup(alignment = Alignment.Center, properties = PopupProperties(focusable = false)) {
+    CameraFlashOverlay(token = cameraFlashToken, modifier = Modifier.fillMaxSize())
+  }
+}
+
+@Composable
+private fun TabletopLayout(
+  viewModel: MainViewModel,
+  canvasContent: @Composable (Modifier) -> Unit,
+  sheet: Sheet?,
+  onSheetChange: (Sheet?) -> Unit,
+  hingeRatio: Float,
+  gatewayState: GatewayState,
+  voiceEnabled: Boolean,
+  activity: StatusActivity?,
+  seamColor: ComposeColor,
+  talkEnabled: Boolean,
+  talkStatusText: String,
+  talkIsListening: Boolean,
+  talkIsSpeaking: Boolean,
+  cameraFlashToken: Long,
+  context: android.content.Context,
+  audioPermissionLauncher: ActivityResultLauncher<String>,
+) {
+  Column(modifier = Modifier.fillMaxSize()) {
+    // Top half: Canvas (above the hinge)
+    Box(modifier = Modifier.weight(hingeRatio).fillMaxWidth()) {
+      canvasContent(Modifier.fillMaxSize())
+
+      // Talk orb centered in top half
+      if (talkEnabled) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+          TalkOrbOverlay(
+            seamColor = seamColor,
+            statusText = talkStatusText,
+            isListening = talkIsListening,
+            isSpeaking = talkIsSpeaking,
+            modifier = Modifier.sizeIn(maxWidth = 280.dp, maxHeight = 280.dp),
+          )
+        }
+      }
+    }
+
+    // Bottom half: Controls (below the hinge)
+    Column(modifier = Modifier.weight(1f - hingeRatio).fillMaxWidth()) {
+      // Status pill + overlay buttons row
+      Row(
+        modifier = Modifier.fillMaxWidth().padding(12.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+      ) {
+        StatusPill(
+          gateway = gatewayState,
+          voiceEnabled = voiceEnabled,
+          activity = activity,
+          onClick = { onSheetChange(Sheet.Settings) },
+        )
+
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+          OverlayIconButton(
+            onClick = { onSheetChange(Sheet.Chat) },
+            icon = { Icon(Icons.Default.ChatBubble, contentDescription = "Chat") },
+          )
+
+          val baseOverlay = overlayContainerColor()
+          val talkContainer = lerp(
+            baseOverlay,
+            seamColor.copy(alpha = baseOverlay.alpha),
+            if (talkEnabled) 0.35f else 0.22f,
+          )
+          val talkContent = if (talkEnabled) seamColor else overlayIconColor()
+          OverlayIconButton(
+            onClick = {
+              val next = !talkEnabled
+              if (next) {
+                val micOk = ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) ==
+                  PackageManager.PERMISSION_GRANTED
+                if (!micOk) audioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                viewModel.setTalkEnabled(true)
+              } else {
+                viewModel.setTalkEnabled(false)
+              }
+            },
+            containerColor = talkContainer,
+            contentColor = talkContent,
+            icon = { Icon(Icons.Default.RecordVoiceOver, contentDescription = "Talk Mode") },
+          )
+
+          OverlayIconButton(
+            onClick = { onSheetChange(Sheet.Settings) },
+            icon = { Icon(Icons.Default.Settings, contentDescription = "Settings") },
+          )
+        }
+      }
+
+      // Remaining space: Chat or Settings content
+      Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+        when (sheet) {
+          Sheet.Settings -> SettingsSheet(viewModel = viewModel)
+          else -> ChatSheet(viewModel = viewModel)
+        }
+      }
+    }
+  }
+
+  // Camera flash still fullscreen
+  Popup(alignment = Alignment.Center, properties = PopupProperties(focusable = false)) {
+    CameraFlashOverlay(token = cameraFlashToken, modifier = Modifier.fillMaxSize())
+  }
 }
 
 @Composable

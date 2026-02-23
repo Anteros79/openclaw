@@ -11,6 +11,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import java.io.File
+import androidx.window.layout.WindowMetricsCalculator
+import java.lang.ref.WeakReference
 import kotlin.math.roundToInt
 
 class ScreenRecordManager(private val context: Context) {
@@ -18,6 +20,7 @@ class ScreenRecordManager(private val context: Context) {
 
   @Volatile private var screenCaptureRequester: ScreenCaptureRequester? = null
   @Volatile private var permissionRequester: ai.openclaw.android.PermissionRequester? = null
+  @Volatile private var activityRef: WeakReference<android.app.Activity>? = null
 
   fun attachScreenCaptureRequester(requester: ScreenCaptureRequester) {
     screenCaptureRequester = requester
@@ -25,6 +28,10 @@ class ScreenRecordManager(private val context: Context) {
 
   fun attachPermissionRequester(requester: ai.openclaw.android.PermissionRequester) {
     permissionRequester = requester
+  }
+
+  fun attachActivity(activity: android.app.Activity) {
+    activityRef = WeakReference(activity)
   }
 
   suspend fun record(paramsJson: String?): Payload =
@@ -58,10 +65,22 @@ class ScreenRecordManager(private val context: Context) {
       val projection = mgr.getMediaProjection(capture.resultCode, capture.data)
         ?: throw IllegalStateException("UNAVAILABLE: screen capture unavailable")
 
-      val metrics = context.resources.displayMetrics
-      val width = metrics.widthPixels
-      val height = metrics.heightPixels
-      val densityDpi = metrics.densityDpi
+      val recordActivity = activityRef?.get()
+      val width: Int
+      val height: Int
+      val densityDpi: Int
+      if (recordActivity != null) {
+        val bounds = WindowMetricsCalculator.getOrCreate()
+          .computeCurrentWindowMetrics(recordActivity).bounds
+        width = bounds.width()
+        height = bounds.height()
+        densityDpi = context.resources.displayMetrics.densityDpi
+      } else {
+        val metrics = context.resources.displayMetrics
+        width = metrics.widthPixels
+        height = metrics.heightPixels
+        densityDpi = metrics.densityDpi
+      }
 
       val file = File.createTempFile("openclaw-screen-", ".mp4")
       if (includeAudio) ensureMicPermission()

@@ -105,6 +105,7 @@ dependencies {
   implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.10.0")
   implementation("androidx.activity:activity-compose:1.12.2")
   implementation("androidx.webkit:webkit:1.15.0")
+  implementation("androidx.window:window:1.3.0")
 
   implementation("androidx.compose.ui:ui")
   implementation("androidx.compose.ui:ui-tooling-preview")
