@@ -7,6 +7,7 @@ import ai.openclaw.android.protocol.OpenClawCameraCommand
 import ai.openclaw.android.protocol.OpenClawLocationCommand
 import ai.openclaw.android.protocol.OpenClawScreenCommand
 import ai.openclaw.android.protocol.OpenClawSmsCommand
+import ai.openclaw.android.protocol.OpenClawWatchCommand
 
 class InvokeDispatcher(
   private val canvas: CanvasController,
@@ -16,6 +17,7 @@ class InvokeDispatcher(
   private val smsHandler: SmsHandler,
   private val a2uiHandler: A2UIHandler,
   private val debugHandler: DebugHandler,
+  private val watchHandler: WatchHandler,
   private val appUpdateHandler: AppUpdateHandler,
   private val isForeground: () -> Boolean,
   private val cameraEnabled: () -> Boolean,
@@ -158,6 +160,10 @@ class InvokeDispatcher(
 
       // SMS command
       OpenClawSmsCommand.Send.rawValue -> smsHandler.handleSmsSend(paramsJson)
+
+      // Watch commands
+      OpenClawWatchCommand.Status.rawValue -> watchHandler.handleStatus(paramsJson)
+      OpenClawWatchCommand.Notify.rawValue -> watchHandler.handleNotify(paramsJson)
 
       // Debug commands
       "debug.ed25519" -> debugHandler.handleEd25519()

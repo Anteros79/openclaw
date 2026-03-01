@@ -18,6 +18,7 @@ import ai.openclaw.android.gateway.GatewaySession
 import ai.openclaw.android.gateway.probeGatewayTlsFingerprint
 import ai.openclaw.android.node.*
 import ai.openclaw.android.protocol.OpenClawCanvasA2UIAction
+import ai.openclaw.android.watch.WatchMessagingBridge
 import ai.openclaw.android.voice.TalkModeManager
 import ai.openclaw.android.voice.VoiceWakeManager
 import kotlinx.coroutines.CoroutineScope
@@ -134,6 +135,13 @@ class NodeRuntime(context: Context) {
     sms = sms,
   )
 
+  val watchBridge: WatchMessagingBridge = WatchMessagingBridge(appContext)
+
+  private val watchHandler: WatchHandler = WatchHandler(
+    bridge = watchBridge,
+    json = json,
+  )
+
   private val a2uiHandler: A2UIHandler = A2UIHandler(
     canvas = canvas,
     json = json,
@@ -158,6 +166,7 @@ class NodeRuntime(context: Context) {
     screenHandler = screenHandler,
     smsHandler = smsHandlerImpl,
     a2uiHandler = a2uiHandler,
+    watchHandler = watchHandler,
     debugHandler = debugHandler,
     appUpdateHandler = appUpdateHandler,
     isForeground = { _isForeground.value },
@@ -370,6 +379,8 @@ class NodeRuntime(context: Context) {
       operatorSession = operatorSession,
       isConnected = { _isConnected.value },
     )
+
+    watchBridge.activate()
 
     scope.launch {
       combine(

@@ -13,6 +13,7 @@ import ai.openclaw.android.protocol.OpenClawCameraCommand
 import ai.openclaw.android.protocol.OpenClawLocationCommand
 import ai.openclaw.android.protocol.OpenClawScreenCommand
 import ai.openclaw.android.protocol.OpenClawSmsCommand
+import ai.openclaw.android.protocol.OpenClawWatchCommand
 import ai.openclaw.android.protocol.OpenClawCapability
 import ai.openclaw.android.LocationMode
 import ai.openclaw.android.VoiceWakeMode
@@ -100,6 +101,8 @@ class ConnectionManager(
       if (smsAvailable()) {
         add(OpenClawSmsCommand.Send.rawValue)
       }
+      add(OpenClawWatchCommand.Status.rawValue)
+      add(OpenClawWatchCommand.Notify.rawValue)
       if (BuildConfig.DEBUG) {
         add("debug.logs")
         add("debug.ed25519")
@@ -119,6 +122,7 @@ class ConnectionManager(
       if (locationMode() != LocationMode.Off) {
         add(OpenClawCapability.Location.rawValue)
       }
+      add(OpenClawCapability.Watch.rawValue)
     }
 
   fun resolvedVersionName(): String {

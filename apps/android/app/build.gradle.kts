@@ -137,6 +137,9 @@ dependencies {
   // Unicast DNS-SD (Wide-Area Bonjour) for tailnet discovery domains.
   implementation("dnsjava:dnsjava:3.6.4")
 
+  // Wearable Data Layer (Galaxy Watch / Wear OS communication)
+  implementation("com.google.android.gms:play-services-wearable:19.0.0")
+
   testImplementation("junit:junit:4.13.2")
   testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
   testImplementation("io.kotest:kotest-runner-junit5-jvm:6.0.7")
