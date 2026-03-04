@@ -197,6 +197,7 @@ xcodebuild \
   -destination "${DESTINATION}" \
   -configuration "${CONFIG}" \
   -derivedDataPath "${DERIVED_DATA}" \
+  -allowProvisioningUpdates \
   build
 
 log_success "Build succeeded!"
