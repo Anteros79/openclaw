@@ -54,6 +54,20 @@
 	<string>OpenClaw needs microphone access for voice wake.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>OpenClaw uses on-device speech recognition for voice wake.</string>
+	<key>NSContactsUsageDescription</key>
+	<string>OpenClaw can search and add contacts when requested via the gateway.</string>
+	<key>NSCalendarsUsageDescription</key>
+	<string>OpenClaw can view and create calendar events when requested via the gateway.</string>
+	<key>NSRemindersUsageDescription</key>
+	<string>OpenClaw can view and create reminders when requested via the gateway.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>OpenClaw can access your photos when requested via the gateway.</string>
+	<key>NSMotionUsageDescription</key>
+	<string>OpenClaw can access motion and activity data for context awareness.</string>
+	<key>NSHealthShareUsageDescription</key>
+	<string>OpenClaw can access your health data when you allow it.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>OpenClaw can log health events when requested via the gateway.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

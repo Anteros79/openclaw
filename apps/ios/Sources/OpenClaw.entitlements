@@ -2,8 +2,23 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<!-- Push Notifications -->
 	<key>aps-environment</key>
 	<string>development</string>
+
+	<!-- Background Modes -->
+	<!-- Note: These must be explicitly enabled in App ID capabilities in Apple Developer account -->
+	<!-- Background App Refresh is typically enabled by default, but remote-notification and audio require explicit setup -->
+
+	<!-- Network Access -->
+	<key>com.apple.security.network.client</key>
+	<true/>
+	<key>com.apple.security.network.server</key>
+	<true/>
+
+	<!-- Siri Integration (optional, requires Siri Intents capability) -->
+	<!-- <key>com.apple.developer.siri</key>
+	<true/> -->
 </dict>
 </plist>
 
