@@ -5,8 +5,8 @@
 OPENCLAW_CODE_SIGN_STYLE = Automatic
 // OPENCLAW_DEVELOPMENT_TEAM = Y5PE65HELJ  // Commented out for free developer account
 
-OPENCLAW_APP_BUNDLE_ID = com.example.openclaw.ios
-OPENCLAW_SHARE_BUNDLE_ID = com.example.openclaw.ios.share
+OPENCLAW_APP_BUNDLE_ID = com.javimccall.openclaw.ios
+OPENCLAW_SHARE_BUNDLE_ID = com.javimccall.openclaw.ios.share
 
 OPENCLAW_APP_PROFILE =
 OPENCLAW_SHARE_PROFILE =
